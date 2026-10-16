@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Read Aloud – Pronunciación</title>
+<style>
+:root{--bg:#f3f1ec;--fg:#1c2321;--mut:#667068;--card:#fffdf9;--bd:#d9d5ca;--ac:#1f5f5b;--acfg:#fff;--ok:#1b7f45;--warn:#a8650d;--bad:#b42323;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121816;--fg:#e8ece9;--mut:#93a09a;--card:#1a2220;--bd:#2c3835;--ac:#4fb3ab;--acfg:#06201e;--ok:#4cc27c;--warn:#e0a247;--bad:#ef7676;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#121816;--fg:#e8ece9;--mut:#93a09a;--card:#1a2220;--bd:#2c3835;--ac:#4fb3ab;--acfg:#06201e;--ok:#4cc27c;--warn:#e0a247;--bad:#ef7676;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 "Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:640px;margin:0 auto;padding:16px}
+h1{font:700 22px/1.2 Georgia,"Times New Roman",serif;margin:4px 0 2px}
+.sub{color:var(--mut);margin:0 0 14px;font-size:14px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:16px;margin-bottom:12px}
+button,.btn{font:inherit;font-weight:600;border:1px solid var(--bd);background:var(--card);color:var(--fg);border-radius:10px;padding:11px 14px;min-height:44px;cursor:pointer}
+button:focus-visible,.btn:focus-visible{outline:3px solid var(--ac);outline-offset:2px}
+.pri{background:var(--ac);color:var(--acfg);border-color:var(--ac)}
+.rec{background:var(--bad);color:#fff;border-color:var(--bad)}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.row>*{flex:1 1 auto}
+#sent{font:500 24px/1.55 Georgia,"Times New Roman",serif;margin:8px 0 14px}
+#sent span{padding:1px 2px;border-radius:5px;cursor:pointer}
+.ok{background:color-mix(in srgb,var(--ok) 22%,transparent);color:var(--ok)}
+.close{background:color-mix(in srgb,var(--warn) 24%,transparent);color:var(--warn)}
+.bad,.miss{background:color-mix(in srgb,var(--bad) 22%,transparent);color:var(--bad);text-decoration:underline wavy}
+.meta{color:var(--mut);font-size:14px}
+#score{font:700 34px/1 Georgia,serif;margin:0}
+#heard{font-style:italic;color:var(--mut);min-height:22px;margin:6px 0}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{min-height:36px;padding:6px 11px;border-radius:999px;font-weight:500}
+input[type=number]{font:inherit;width:84px;padding:10px;border-radius:10px;border:1px solid var(--bd);background:var(--card);color:var(--fg)}
+input[type=file]{display:none}
+.hide{display:none}
+.bar{height:6px;background:var(--bd);border-radius:3px;overflow:hidden;margin:8px 0}
+.bar i{display:block;height:100%;background:var(--ac);width:0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Read Aloud</h1>
+  <p class="sub">Importa un libro, lee en voz alta y recibe feedback palabra por palabra.</p>
+
+  <div class="card" id="loader">
+    <div class="row">
+      <label class="btn pri" for="file" style="text-align:center">Importar libro (EPUB o PDF)</label>
+      <button id="demo">Probar con texto de ejemplo</button>
+    </div>
+    <input id="file" type="file" accept=".epub,.pdf,application/pdf,application/epub+zip">
+    <p class="meta" id="status" style="margin:10px 0 0"></p>
+  </div>
+
+  <div class="card hide" id="reader">
+    <div class="meta"><span id="book"></span> · frase <span id="pos"></span></div>
+    <div class="bar"><i id="prog"></i></div>
+    <p id="sent"></p>
+    <div class="row">
+      <button id="hear">Escuchar</button>
+      <button id="slow">Escuchar lento</button>
+      <button id="mic" class="pri">Hablar</button>
+    </div>
+    <div id="heard" aria-live="polite"></div>
+    <div id="result" class="hide">
+      <p id="score"></p>
+      <p class="meta" id="fb" style="margin:6px 0 0"></p>
+      <p class="meta" style="margin:6px 0 0">Toca una palabra para oír cómo suena.</p>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button id="prev">Anterior</button>
+      <button id="again">Repetir</button>
+      <button id="next" class="pri">Siguiente</button>
+    </div>
+    <div class="row" style="margin-top:8px;align-items:center">
+      <span class="meta" style="flex:0 0 auto">Ir a la frase</span>
+      <input id="go" type="number" min="1" inputmode="numeric">
+      <button id="gobtn" style="flex:0 0 auto">Ir</button>
+    </div>
+  </div>
+
+  <div class="card hide" id="weakbox">
+    <strong>Palabras para practicar</strong>
+    <div class="chips" id="weak" style="margin-top:8px"></div>
+    <button id="clr" style="margin-top:10px">Borrar lista</button>
+  </div>
+  <p class="meta">Necesitas conexión a internet para el reconocimiento de voz.</p>
+</div>
+
+<script src="pdf.min.js"></script>
+<script src="pdf.worker.min.js"></script>
+<script src="jszip.min.js"></script>
+<script>
+const $=s=>document.querySelector(s);
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+let sents=[],idx=0,key='',recog=null,last=null;
+try{pdfjsLib.GlobalWorkerOptions.workerSrc='pdf.worker.min.js'}catch(e){}
+const status=t=>$('#status').textContent=t;
+
+/* ---------- Lectura de archivos ---------- */
+async function readPDF(buf){
+  const pdf=await pdfjsLib.getDocument({data:buf}).promise;let t='';
+  for(let i=1;i<=pdf.numPages;i++){
+    status('Leyendo PDF… página '+i+' de '+pdf.numPages);
+    const c=await(await pdf.getPage(i)).getTextContent();
+    t+=c.items.map(x=>x.str).join(' ')+'\n';
+  }
+  return t;
+}
+function resolve(base,h){
+  const parts=(base+decodeURI(h.split('#')[0])).split('/'),o=[];
+  for(const p of parts){if(p==='..')o.pop();else if(p&&p!=='.')o.push(p)}
+  return o.join('/');
+}
+async function readEPUB(buf){
+  const z=await JSZip.loadAsync(buf),dp=new DOMParser();
+  const xml=async p=>dp.parseFromString(await z.file(p).async('string'),'application/xml');
+  const cont=await xml('META-INF/container.xml');
+  const opfPath=cont.querySelector('rootfile').getAttribute('full-path');
+  const opf=await xml(opfPath),base=opfPath.replace(/[^/]*$/,'');
+  const man={};opf.querySelectorAll('manifest > item').forEach(i=>man[i.getAttribute('id')]=i.getAttribute('href'));
+  let t='';
+  for(const r of opf.querySelectorAll('spine > itemref')){
+    const h=man[r.getAttribute('idref')];if(!h)continue;
+    const f=z.file(resolve(base,h));if(!f)continue;
+    const d=dp.parseFromString(await f.async('string'),'text/html');
+    d.querySelectorAll('script,style').forEach(e=>e.remove());
+    t+=(d.body?d.body.textContent:'')+'\n';
+  }
+  return t;
+}
+function split(text){
+  const m=text.replace(/\s+/g,' ').match(/[^.!?]+[.!?]+["'”’)\]]*|[^.!?]+$/g)||[];
+  return m.map(s=>s.trim()).filter(s=>s.split(' ').length>=3&&s.length<400);
+}
+function openBook(name,text){
+  sents=split(text);
+  if(!sents.length){status('No se encontró texto legible. Si el PDF es un escaneo, necesita OCR.');return}
+  key='pos:'+name+':'+sents.length;
+  idx=Math.min(parseInt(store.get(key)||'0',10)||0,sents.length-1);
+  $('#book').textContent=name.length>26?name.slice(0,24)+'…':name;
+  $('#go').max=sents.length;
+  $('#reader').classList.remove('hide');status(sents.length+' frases cargadas.');
+  show();renderWeak();
+}
+$('#file').onchange=async e=>{
+  const f=e.target.files[0];if(!f)return;
+  try{
+    status('Procesando '+f.name+'…');
+    const buf=await f.arrayBuffer();
+    const text=/\.pdf$/i.test(f.name)?await readPDF(buf):await readEPUB(buf);
+    openBook(f.name,text);
+  }catch(err){status('No se pudo leer el archivo ('+(err.message||err)+'). Prueba con otro EPUB o PDF.')}
+};
+$('#demo').onclick=()=>openBook('Texto de ejemplo',
+ "The weather in Edinburgh is rarely what you expect. Through the thorough rain, a thoughtful woman walked her three thirsty dogs. She bought some vegetables and a loaf of bread at the market. Would you rather read a comprehensive book or watch a short film tonight? The comfortable chair by the window was perfect for reading.");
+
+/* ---------- Mostrar frase ---------- */
+const norm=w=>w.toLowerCase().replace(/[^a-z0-9']/g,'');
+function show(){
+  last=null;
+  const words=sents[idx].split(/\s+/);
+  $('#sent').innerHTML=words.map(w=>'<span>'+w.replace(/</g,'&lt;')+'</span>').join(' ');
+  bindWords();
+  $('#pos').textContent=(idx+1)+' de '+sents.length;
+  $('#prog').style.width=((idx+1)/sents.length*100)+'%';
+  $('#heard').textContent='';$('#result').classList.add('hide');
+  store.set(key,String(idx));
+}
+function bindWords(){document.querySelectorAll('#sent span').forEach(s=>s.onclick=()=>say(s.textContent,.7))}
+function say(t,rate){
+  try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='en-US';u.rate=rate;
+  const v=speechSynthesis.getVoices().find(v=>/en[-_]US/i.test(v.lang));if(v)u.voice=v;speechSynthesis.speak(u)}catch(e){}
+}
+$('#hear').onclick=()=>say(sents[idx],.95);
+$('#slow').onclick=()=>say(sents[idx],.6);
+$('#next').onclick=()=>{if(idx<sents.length-1){idx++;show()}};
+$('#prev').onclick=()=>{if(idx>0){idx--;show()}};
+$('#again').onclick=show;
+$('#gobtn').onclick=()=>{const n=parseInt($('#go').value,10);if(n>=1&&n<=sents.length){idx=n-1;show()}};
+
+/* ---------- Reconocimiento de voz ---------- */
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+const NATIVE=window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform();
+const SRP=NATIVE&&Capacitor.Plugins&&Capacitor.Plugins.SpeechRecognition;
+function micUI(on){$('#mic').textContent=on?'Detener':'Hablar';$('#mic').className=on?'rec':'pri'}
+async function nativeListen(){
+  let final='',done=false,finish=async()=>{
+    if(done)return;done=true;recog=null;micUI(false);
+    try{await SRP.removeAllListeners()}catch(e){}
+    if(final)analyze(final,0);
+  };
+  try{
+    const av=await SRP.available();
+    if(!av.available){$('#heard').textContent='El reconocimiento de voz no está disponible. Instala o activa «Servicios de voz de Google».';return}
+    let p=await SRP.checkPermissions();
+    if(p.speechRecognition!=='granted')p=await SRP.requestPermissions();
+    if(p.speechRecognition!=='granted'){$('#heard').textContent='Permiso de micrófono denegado. Actívalo en Ajustes → Apps → Read Aloud.';return}
+    recog={stop:async()=>{try{await SRP.stop()}catch(e){}finish()}};
+    micUI(true);$('#heard').textContent='Escuchando… lee la frase en voz alta.';
+    await SRP.addListener('partialResults',d=>{if(d.matches&&d.matches[0]){final=d.matches[0];$('#heard').textContent='Oído: "'+final+'"'}});
+    await SRP.addListener('listeningState',d=>{if(d.status==='stopped')setTimeout(finish,300)});
+    await SRP.start({language:'en-US',maxResults:1,partialResults:true,popup:false});
+  }catch(e){recog=null;micUI(false);$('#heard').textContent='Error de reconocimiento: '+(e.message||e)}
+}
+$('#mic').onclick=()=>{
+  if(recog){recog.stop();return}
+  try{speechSynthesis.cancel()}catch(e){}
+  if(NATIVE&&SRP){nativeListen();return}
+  if(!SR){$('#heard').textContent='Este navegador no admite reconocimiento de voz. Usa Chrome en Android.';return}
+  const r=new SR();recog=r;r.lang='en-US';r.interimResults=true;r.maxAlternatives=1;
+  let final='',confs=[];
+  r.onstart=()=>{micUI(true);$('#heard').textContent='Escuchando… lee la frase en voz alta.'};
+  r.onresult=e=>{let t='';confs=[];for(const res of e.results){t+=res[0].transcript+' ';if(res.isFinal)confs.push(res[0].confidence)}final=t.trim();$('#heard').textContent='Oído: "'+final+'"'};
+  r.onerror=e=>{$('#heard').textContent=e.error==='not-allowed'?'Micrófono bloqueado. Permite el micrófono.':e.error==='no-speech'?'No se oyó nada. Inténtalo de nuevo.':'Error de reconocimiento: '+e.error};
+  r.onend=()=>{recog=null;micUI(false);if(final)analyze(final,confs.length?confs.reduce((a,b)=>a+b)/confs.length:0)};
+  try{r.start()}catch(e){recog=null}
+};
+
+/* ---------- Análisis ---------- */
+function sim(a,b){
+  const n=a.length,m=b.length;if(!n||!m)return 0;
+  const d=Array.from({length:n+1},(_,i)=>[i,...Array(m).fill(0)]);for(let j=0;j<=m;j++)d[0][j]=j;
+  for(let i=1;i<=n;i++)for(let j=1;j<=m;j++)d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));
+  return 1-d[n][m]/Math.max(n,m);
+}
+function analyze(heard,conf){
+  const words=sents[idx].split(/\s+/).filter(w=>norm(w));
+  const R=words.map(norm),H=heard.split(/\s+/).map(norm).filter(Boolean);
+  const n=R.length,m=H.length,cost=(a,b)=>a===b?0:(sim(a,b)>.6?.5:1);
+  const D=Array.from({length:n+1},()=>Array(m+1).fill(0));
+  for(let i=0;i<=n;i++)D[i][0]=i;for(let j=0;j<=m;j++)D[0][j]=j;
+  for(let i=1;i<=n;i++)for(let j=1;j<=m;j++)D[i][j]=Math.min(D[i-1][j]+1,D[i][j-1]+1,D[i-1][j-1]+cost(R[i-1],H[j-1]));
+  const res=Array(n);let i=n,j=m;
+  while(i>0||j>0){
+    if(i>0&&j>0&&D[i][j]===D[i-1][j-1]+cost(R[i-1],H[j-1])){const c=cost(R[i-1],H[j-1]);res[i-1]={s:c===0?'ok':c<1?'close':'bad',h:H[j-1]};i--;j--}
+    else if(i>0&&D[i][j]===D[i-1][j]+1){res[i-1]={s:'miss'};i--}
+    else j--;
+  }
+  const pts=res.reduce((a,r)=>a+(r.s==='ok'?1:r.s==='close'?.5:0),0);
+  const score=Math.round(pts/n*100);
+  $('#sent').innerHTML=words.map((w,k)=>'<span class="'+res[k].s+'" title="'+(res[k].h?'Oído: '+res[k].h:'')+'">'+w.replace(/</g,'&lt;')+'</span>').join(' ');
+  bindWords();
+  $('#score').textContent=score+'%';
+  const bad=words.filter((w,k)=>res[k].s!=='ok');
+  $('#fb').textContent=(score>=90?'Excelente. ':score>=70?'Bien, casi. ':'Sigue practicando. ')+
+    (bad.length?'Revisa: '+bad.map(w=>w.replace(/[^\w']/g,'')).join(', ')+'. ':'Todas las palabras se reconocieron bien. ')+
+    (conf?'Claridad detectada: '+Math.round(conf*100)+'%.':'');
+  $('#result').classList.remove('hide');
+  const wk=getWeak();bad.forEach(w=>{const k=norm(w);if(k)wk[k]=(wk[k]||0)+1});
+  store.set('weak',JSON.stringify(wk));renderWeak();
+}
+
+/* ---------- Palabras a practicar ---------- */
+function getWeak(){try{return JSON.parse(store.get('weak')||'{}')}catch(e){return{}}}
+function renderWeak(){
+  const e=Object.entries(getWeak()).sort((a,b)=>b[1]-a[1]).slice(0,15);
+  $('#weakbox').classList.toggle('hide',!e.length);
+  $('#weak').innerHTML='';
+  e.forEach(([w,c])=>{const b=document.createElement('button');b.className='chip';b.textContent=w+' ×'+c;b.onclick=()=>say(w,.7);$('#weak').appendChild(b)});
+}
+$('#clr').onclick=()=>{store.set('weak','{}');renderWeak()};
+renderWeak();
+</script>
+</body>
+</html>
